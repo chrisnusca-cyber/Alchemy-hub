@@ -2,13 +2,15 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   try {
-    const hasKey = !!process.env.ANTHROPIC_API_KEY;
-    const keyPrefix = process.env.ANTHROPIC_API_KEY ? process.env.ANTHROPIC_API_KEY.substring(0,10) : 'MISSING';
-    const bodyType = typeof req.body;
-    const model = req.body && req.body.model;
-    console.log('DIAG hasKey=' + hasKey + ' keyPrefix=' + keyPrefix + ' bodyType=' + bodyType + ' model=' + model);
+    // Manually parse body in case Vercel ESM compilation breaks auto-parsing
+    let parsedBody = req.body;
+    if (!parsedBody || typeof parsedBody !== 'object') {
+      const chunks = [];
+      for await (const chunk of req) chunks.push(chunk);
+      parsedBody = JSON.parse(Buffer.concat(chunks).toString());
+    }
 
-    const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    console.log('DIAG hasKey=' + !!process.env.ANTHROPIC_API_KEY + ' bodyType=' + typeof parsedBody + ' model=' + parsedBody.model);
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -17,13 +19,13 @@ export default async function handler(req, res) {
         'x-api-key': process.env.ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01'
       },
-      body
+      body: JSON.stringify(parsedBody)
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('ERR status=' + response.status + ' msg=' + (data.error && data.error.message));
+      console.error('ERR ' + response.status + ' type=' + (data.error && data.error.type) + ' msg=' + (data.error && data.error.message));
     }
 
     res.status(response.status).json(data);
