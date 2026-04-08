@@ -1276,7 +1276,7 @@ async function runAI(msg){
   try{
     const res=await fetch('/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:4000,system:SYSTEM,
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4000,system:SYSTEM,
         messages:[{role:'user',content:'State:\n'+JSON.stringify(send)+'\n\nUser ('+who+'): '+msg}]})
     });
     const data=await res.json();
