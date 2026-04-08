@@ -2,6 +2,12 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   try {
+    const hasKey = !!process.env.ANTHROPIC_API_KEY;
+    const keyPrefix = process.env.ANTHROPIC_API_KEY ? process.env.ANTHROPIC_API_KEY.substring(0,10) : 'MISSING';
+    const bodyType = typeof req.body;
+    const model = req.body && req.body.model;
+    console.log('DIAG hasKey=' + hasKey + ' keyPrefix=' + keyPrefix + ' bodyType=' + bodyType + ' model=' + model);
+
     const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -17,12 +23,12 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Anthropic error:', response.status, JSON.stringify(data));
+      console.error('ERR status=' + response.status + ' msg=' + (data.error && data.error.message));
     }
 
     res.status(response.status).json(data);
   } catch (err) {
-    console.error('Handler error:', err.message);
+    console.error('CATCH ' + err.message);
     res.status(500).json({ error: 'API call failed', details: err.message });
   }
 }
