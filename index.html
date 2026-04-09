@@ -385,6 +385,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
 /* TOAST */
 .toast{position:fixed;bottom:66px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--bk);color:white;font-size:11px;padding:7px 14px;border-radius:3px;opacity:0;transition:all .18s;pointer-events:none;z-index:500;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 </style>
 </head>
 <body>
@@ -412,7 +413,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
 </nav>
 
 <!-- FLOATING INVOICE WIDGET -->
-<div id="invWidget" class="inv-widget">
+<div id="invWidget" class="inv-widget" style="display:none">
   <div class="inv-widget-tab" onclick="toggleInvWidget()">
     <span>Invoices</span><span id="invWidgetBadge" class="inv-badge"></span>
   </div>
@@ -524,11 +525,21 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
     </button>
   </div>
   <div id="transcribeBox" style="display:none;border:0.5px solid var(--b2);border-radius:4px;overflow:hidden;margin-bottom:14px;background:white;">
-    <div style="padding:10px 14px;background:var(--bk);color:white;font-size:11px;font-weight:700;">Meeting Transcript</div>
+    <div style="padding:10px 14px;background:var(--bk);color:white;font-size:11px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
+      <span>Meeting Transcript</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="recStatus" style="font-size:10px;font-weight:400;opacity:.7;"></span>
+        <button id="recBtn" onclick="toggleRecording()" style="background:none;border:1px solid rgba(255,255,255,.4);border-radius:3px;color:white;font-size:10px;font-family:var(--font);padding:3px 10px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+          <span id="recDot" style="width:7px;height:7px;border-radius:50%;background:#ff3b30;display:inline-block;"></span>
+          <span id="recLabel">Record</span>
+        </button>
+      </div>
+    </div>
     <div style="padding:14px;">
-      <textarea id="transcriptTa" style="width:100%;height:120px;border:0.5px solid var(--b2);border-radius:3px;padding:10px;font-size:12px;font-family:var(--font);resize:vertical;outline:none;line-height:1.6;" placeholder="Paste transcript or meeting notes here. Claude will extract decisions, tasks, and updates — and log the meeting with a summary."></textarea>
+      <textarea id="transcriptTa" style="width:100%;height:160px;border:0.5px solid var(--b2);border-radius:3px;padding:10px;font-size:12px;font-family:var(--font);resize:vertical;outline:none;line-height:1.6;" placeholder="Click Record to capture a live meeting, or paste a transcript here. Claude will extract decisions, tasks, pipeline changes, and log a summary."></textarea>
+      <div id="recLive" style="display:none;font-size:11px;color:var(--g3);padding:4px 2px;font-style:italic;">Listening…</div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
-        <button onclick="document.getElementById('transcribeBox').style.display='none'" style="background:none;border:0.5px solid var(--g2);border-radius:3px;padding:6px 12px;font-size:11px;font-family:var(--font);cursor:pointer;">Cancel</button>
+        <button onclick="cancelTranscribe()" style="background:none;border:0.5px solid var(--g2);border-radius:3px;padding:6px 12px;font-size:11px;font-family:var(--font);cursor:pointer;">Cancel</button>
         <button onclick="submitTranscript()" style="background:var(--k);color:white;border:none;border-radius:3px;padding:6px 14px;font-size:11px;font-weight:700;font-family:var(--font);cursor:pointer;">Process & Update Hub →</button>
       </div>
     </div>
@@ -710,7 +721,14 @@ function clog(type,msg){
 
 function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2300);}
 function setWho(w,btn){who=w;document.querySelectorAll('.who-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
-function goTab(id,el){document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));document.getElementById('s-'+id).classList.add('on');el.classList.add('on');}
+function goTab(id,el){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('s-'+id).classList.add('on');
+  el.classList.add('on');
+  const iw=document.getElementById('invWidget');
+  if(iw)iw.style.display=id==='prospects'?'block':'none';
+}
 function setView(v,btn){S.curView=v;save();document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.getElementById('v-monthly').style.display=v==='monthly'?'block':'none';document.getElementById('v-daily').style.display=v==='daily'?'block':'none';}
 
 function render(){renderKPIs();renderOverview();renderProspects();renderLongterm();renderIdeas();renderLog();}
@@ -1194,13 +1212,58 @@ function renderLongterm(){
 function toggleLTG(arm,i){S.ltGoals[arm][i].done=!S.ltGoals[arm][i].done;if(S.ltGoals[arm][i].done)clog('goal','Long-term goal achieved: "'+S.ltGoals[arm][i].text+'"');save();renderLongterm();}
 function eLTG(arm,i,field,el){S.ltGoals[arm][i][field]=el.textContent.trim();save();}
 function delLTG(arm,i){S.ltGoals[arm].splice(i,1);save();renderLongterm();}
-function startTranscribe(){document.getElementById('transcribeBox').style.display='block';document.getElementById('transcriptTa').focus();}
+let recog=null,isRecording=false,recTranscript='';
+function startTranscribe(){
+  document.getElementById('transcribeBox').style.display='block';
+  document.getElementById('transcriptTa').focus();
+}
+function cancelTranscribe(){
+  if(isRecording)stopRecording();
+  document.getElementById('transcribeBox').style.display='none';
+  document.getElementById('transcriptTa').value='';
+}
+function toggleRecording(){isRecording?stopRecording():startRecording();}
+function startRecording(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('Use Chrome for live recording');return;}
+  recog=new SR();
+  recog.continuous=true;
+  recog.interimResults=true;
+  recog.lang='en-US';
+  recTranscript=document.getElementById('transcriptTa').value;
+  recog.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal){recTranscript+=e.results[i][0].transcript+' ';}
+      else{interim=e.results[i][0].transcript;}
+    }
+    document.getElementById('transcriptTa').value=recTranscript;
+    document.getElementById('recLive').textContent=interim?'Hearing: '+interim:'Listening…';
+  };
+  recog.onend=()=>{if(isRecording)recog.start();};
+  recog.onerror=e=>{if(e.error!=='no-speech')toast('Mic error: '+e.error);};
+  recog.start();
+  isRecording=true;
+  document.getElementById('recLabel').textContent='Stop';
+  document.getElementById('recDot').style.animation='pulse 1s infinite';
+  document.getElementById('recStatus').textContent='Recording…';
+  document.getElementById('recLive').style.display='block';
+}
+function stopRecording(){
+  if(recog){recog.onend=null;recog.stop();recog=null;}
+  isRecording=false;
+  document.getElementById('recLabel').textContent='Record';
+  document.getElementById('recDot').style.animation='';
+  document.getElementById('recStatus').textContent='Done — review & process';
+  document.getElementById('recLive').style.display='none';
+}
 async function submitTranscript(){
+  if(isRecording)stopRecording();
   const ta=document.getElementById('transcriptTa'),txt=ta.value.trim();
-  if(!txt)return;
+  if(!txt){toast('Nothing to process');return;}
   ta.disabled=true;
   await runAI('Meeting transcript — extract all decisions, tasks assigned, pipeline changes, goals hit, and any other relevant updates. Add a meeting log entry with date and 3-sentence summary. Update the hub accordingly:\n\n'+txt);
-  ta.value='';ta.disabled=false;
+  ta.value='';ta.disabled=false;recTranscript='';
   document.getElementById('transcribeBox').style.display='none';
 }
 function addLTG(arm){S.ltGoals[arm].push({text:'New long-term goal',note:'',done:false,target:1,progress:0});clog('goal','Long-term goal added');save();renderLongterm();}
