@@ -104,12 +104,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
 .inv-summary{display:flex;gap:16px;padding:10px 12px;background:var(--g1);border-top:0.5px solid var(--b2);font-size:11px;color:var(--g4);}
 .inv-sum-item strong{color:var(--bk);}
 .inv-sum-item.amber strong{color:#b85a00;}
-.inv-add-row{padding:10px 12px;border-top:0.5px solid var(--b1);display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:white;}
-.inv-ri{border:0.5px solid var(--b2);border-radius:3px;padding:5px 9px;font-size:11px;font-family:var(--font);color:var(--bk);background:white;outline:none;}
-.inv-ri:focus{border-color:var(--k);}
-.inv-ri-sel{border:0.5px solid var(--b2);border-radius:3px;padding:5px 9px;font-size:11px;font-family:var(--font);color:var(--g4);background:white;outline:none;}
-.inv-add-btn{background:var(--bk);color:white;border:none;border-radius:3px;padding:5px 12px;font-size:11px;font-family:var(--font);cursor:pointer;}
-.inv-add-btn:hover{background:var(--k);}
+.inv-add-card{border:0.5px dashed var(--g2);border-radius:4px;padding:8px;text-align:center;cursor:pointer;color:var(--g3);font-size:16px;margin:8px 12px 10px;line-height:1;}
+.inv-add-card:hover{border-color:var(--k);color:var(--k);}
 
 /* Monthly calendar */
 .month-cal{border:0.5px solid var(--b2);border-radius:4px;overflow:hidden;margin-bottom:20px;}
@@ -241,9 +237,15 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
 .pf-val{font-size:11px;color:var(--g4);outline:none;cursor:text;line-height:1.5;min-height:14px;}
 .pf-val:focus{color:var(--bk);}
 .pf-val:empty:before{content:attr(data-ph);color:var(--g2);}
-.pc-slider{padding:7px 14px;border-top:0.5px solid var(--b1);display:flex;align-items:center;gap:8px;}
-.pc-slider input[type=range]{flex:1;accent-color:var(--k);height:2px;}
-.pc-slider span{font-size:10px;color:var(--g3);min-width:26px;}
+.pc-tasks{padding:8px 14px;border-top:0.5px solid var(--b1);display:flex;flex-direction:column;gap:5px;}
+.pc-task{display:flex;align-items:center;gap:6px;}
+.pc-task input[type=checkbox]{accent-color:var(--k);cursor:pointer;flex-shrink:0;}
+.pc-task-txt{font-size:11px;color:var(--k);flex:1;outline:none;}
+.pc-task-txt.done{text-decoration:line-through;color:var(--g3);}
+.pc-task-del{background:none;border:none;cursor:pointer;color:var(--g2);font-size:11px;padding:0;}
+.pc-task-del:hover{color:#c00;}
+.pc-task-add{background:none;border:0.5px dashed var(--g2);border-radius:3px;cursor:pointer;color:var(--g3);font-size:10px;padding:2px 7px;font-family:var(--font);text-align:left;margin-top:2px;}
+.pc-task-add:hover{border-color:var(--k);color:var(--k);}
 .pc-next{padding:9px 14px;border-top:0.5px solid var(--b1);background:var(--g1);display:flex;gap:7px;align-items:baseline;}
 .pc-next-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--k);white-space:nowrap;}
 .pc-next-val{font-size:11px;color:var(--g4);outline:none;cursor:text;flex:1;}
@@ -431,7 +433,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
     <div class="ov-right">
       <div class="comp" id="compWidget"></div>
       <div class="widget">
-        <div class="widget-hd"><div class="widget-title">Active Projects</div></div>
+        <div class="widget-hd"><div class="widget-title">Clients</div></div>
         <div id="activeClients"></div>
       </div>
       <div class="widget">
@@ -463,10 +465,10 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
   <div class="row-btw"><div class="sec-label">Pipeline</div></div>
   <div class="kanban" id="kanban"></div>
   <div class="divider"></div>
-  <div class="row-btw"><div class="sec-label">Invoices</div><button class="sm-btn" onclick="addInvoice()">+ Invoice</button></div>
+  <div class="row-btw"><div class="sec-label">Invoices</div></div>
   <div class="inv-tbl" id="invTbl"></div>
   <div class="divider"></div>
-  <div class="row-btw"><div class="sec-label">Active Projects</div><button class="sm-btn" onclick="addProject()">+ Project</button></div>
+  <div class="row-btw"><div class="sec-label">Clients</div><button class="sm-btn" onclick="addProject()">+ Project</button></div>
   <div class="proj-grid" id="projGrid"></div>
 </div>
 
@@ -995,13 +997,15 @@ function renderProspects(){
   });
   const pg=document.getElementById('projGrid');pg.innerHTML='';
   (S.projects||[]).forEach((p,pi)=>{
+    const tasks=p.tasks||[];
+    const autoPct=tasks.length?Math.round(tasks.filter(t=>t.done).length/tasks.length*100):0;
     const card=document.createElement('div');card.className='pcard';
     card.innerHTML=`<div class="pc-hd">
       <div class="pc-name" contenteditable data-pi="${pi}" data-f="name" onblur="eProj(this)">${p.name}</div>
-      <div class="pc-pct-lbl" id="ppl-${pi}">${p.pct}%</div>
+      <div class="pc-pct-lbl" id="ppl-${pi}">${autoPct}%</div>
       <button class="pc-del" onclick="delProj(${pi})">×</button>
     </div>
-    <div class="pc-bar"><div class="pc-fill" id="pf-${pi}" style="width:${p.pct}%"></div></div>
+    <div class="pc-bar"><div class="pc-fill" id="pf-${pi}" style="width:${autoPct}%"></div></div>
     <div class="pc-body">
       <div><div class="pf-lbl">Scope & Deliverables</div><div class="pf-val" contenteditable data-pi="${pi}" data-f="scope" onblur="eProj(this)" data-ph="What was agreed…">${p.scope||''}</div></div>
       <div><div class="pf-lbl">Assets Created</div><div class="pf-val" contenteditable data-pi="${pi}" data-f="assets" onblur="eProj(this)" data-ph="What's been made…">${p.assets||''}</div></div>
@@ -1009,9 +1013,13 @@ function renderProspects(){
     <div class="pc-body" style="padding-top:0;">
       <div><div class="pf-lbl">Status</div><div class="pf-val" contenteditable data-pi="${pi}" data-f="status" onblur="eProj(this)" data-ph="Current status…">${p.status||''}</div></div>
     </div>
-    <div class="pc-slider">
-      <input type="range" min="0" max="100" value="${p.pct}" oninput="slidePct(${pi},this)">
-      <span id="ps-${pi}">${p.pct}%</span>
+    <div class="pc-tasks">
+      ${(p.tasks||[]).map((t,ti)=>`<div class="pc-task">
+        <input type="checkbox" ${t.done?'checked':''} onchange="toggleProjTask(${pi},${ti},this)">
+        <span class="pc-task-txt ${t.done?'done':''}" contenteditable onblur="eProjTask(${pi},${ti},this)">${t.text}</span>
+        <button class="pc-task-del" onclick="delProjTask(${pi},${ti})">×</button>
+      </div>`).join('')}
+      <button class="pc-task-add" onclick="addProjTask(${pi})">+ task</button>
     </div>
     <div class="pc-next"><div class="pc-next-lbl">Next →</div><div class="pc-next-val" contenteditable data-pi="${pi}" data-f="next" onblur="eProj(this)">${p.next||''}</div></div>`;
     pg.appendChild(card);
@@ -1036,9 +1044,30 @@ function addKCard(s){
   toast(nm.trim()+' added to '+s);
 }
 function eProj(el){const pi=+el.dataset.pi,f=el.dataset.f;S.projects[pi][f]=el.textContent.trim();save();if(f==='status')renderOverview();}
-function slidePct(pi,el){const v=+el.value;S.projects[pi].pct=v;document.getElementById('pf-'+pi).style.width=v+'%';document.getElementById('ppl-'+pi).textContent=v+'%';document.getElementById('ps-'+pi).textContent=v+'%';clog('task',S.projects[pi].name+' progress → '+v+'%');save();renderOverview();}
+function calcProjPct(pi){
+  const tasks=S.projects[pi].tasks||[];
+  return tasks.length?Math.round(tasks.filter(t=>t.done).length/tasks.length*100):0;
+}
+function toggleProjTask(pi,ti,el){
+  if(!S.projects[pi].tasks)S.projects[pi].tasks=[];
+  S.projects[pi].tasks[ti].done=el.checked;
+  const pct=calcProjPct(pi);
+  S.projects[pi].pct=pct;
+  const pfEl=document.getElementById('pf-'+pi);
+  const pplEl=document.getElementById('ppl-'+pi);
+  if(pfEl)pfEl.style.width=pct+'%';
+  if(pplEl)pplEl.textContent=pct+'%';
+  save();renderOverview();
+}
+function eProjTask(pi,ti,el){if(!S.projects[pi].tasks)return;S.projects[pi].tasks[ti].text=el.textContent.trim();save();}
+function delProjTask(pi,ti){S.projects[pi].tasks.splice(ti,1);save();renderProspects();}
+function addProjTask(pi){
+  if(!S.projects[pi].tasks)S.projects[pi].tasks=[];
+  S.projects[pi].tasks.push({text:'New task',done:false});
+  save();renderProspects();
+}
 function delProj(pi){const nm=S.projects[pi].name;S.projects.splice(pi,1);clog('client','Project '+nm+' removed');save();renderProspects();renderOverview();}
-function addProject(){S.projects.push({name:'New Project',pct:0,tag:'studio',scope:'',assets:'',next:'',status:'Just started'});clog('client','New project added');save();renderProspects();}
+function addProject(){S.projects.push({name:'New Client',pct:0,tag:'studio',scope:'',assets:'',next:'',status:'Just started',tasks:[]});clog('client','New client added');save();renderProspects();}
 
 /* ── INVOICES ── */
 function renderInvoices(){
@@ -1072,19 +1101,7 @@ function renderInvoices(){
     <span class="inv-sum-item">Paid: <strong>kr ${paid.toLocaleString()}</strong></span>
     <span class="inv-sum-item amber">Outstanding: <strong>kr ${outstanding.toLocaleString()}</strong></span>
   </div>
-  <div class="inv-add-row">
-    <input class="inv-ri" id="invClient" placeholder="Client" style="width:100px;">
-    <input class="inv-ri" id="invAmt" placeholder="Amount (kr)" type="number" style="width:120px;">
-    <input class="inv-ri" id="invIssued" placeholder="Issued date" style="width:110px;">
-    <input class="inv-ri" id="invDue" placeholder="Due date" style="width:100px;">
-    <select class="inv-ri-sel" id="invStatus">
-      <option value="draft">Draft</option>
-      <option value="invoiced" selected>Invoiced</option>
-      <option value="paid">Paid</option>
-      <option value="overdue">Overdue</option>
-    </select>
-    <button class="inv-add-btn" onclick="addInvoice()">+ Add Invoice</button>
-  </div>`;
+  <div class="inv-add-card" onclick="addInvoice()" title="Add invoice">+</div>`;
 }
 function eInv(i,f,el){if(!S.invoices[i])return;S.invoices[i][f]=el.textContent.trim();save();}
 function eInvAmt(i,el){
@@ -1106,20 +1123,18 @@ function eInvStatus(i,el){
 }
 function rmInv(i){const c=S.invoices[i].client;S.invoices.splice(i,1);clog('client','Invoice removed for '+c);save();renderInvoices();renderKPIs();}
 function addInvoice(){
-  const client=document.getElementById('invClient').value.trim();
-  const amt=+document.getElementById('invAmt').value;
-  const issued=document.getElementById('invIssued').value.trim();
-  const due=document.getElementById('invDue').value.trim();
-  const status=document.getElementById('invStatus').value;
-  if(!client||!amt)return;
+  var client=prompt('Client name:');
+  if(!client||!client.trim())return;
+  var amtRaw=prompt('Amount (kr):');
+  if(!amtRaw)return;
+  var amt=parseFloat(amtRaw.replace(/[^0-9.]/g,''));
+  if(isNaN(amt)||amt<=0)return;
+  var issued=prompt('Issued date (e.g. 9 Apr):',new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'}))||'';
+  var due=prompt('Due date (e.g. 23 Apr):','')||'';
   if(!S.invoices)S.invoices=[];
-  S.invoices.push({client,amount:amt,issued,due,status});
-  clog('client','Invoice created: kr '+amt.toLocaleString()+' for '+client+' ('+status+')');
+  S.invoices.push({client:client.trim(),amount:amt,issued:issued.trim(),due:due.trim(),status:'invoiced'});
+  clog('client','Invoice created: kr '+amt.toLocaleString()+' for '+client.trim());
   save();renderInvoices();renderKPIs();toast('Invoice added');
-  document.getElementById('invClient').value='';
-  document.getElementById('invAmt').value='';
-  document.getElementById('invIssued').value='';
-  document.getElementById('invDue').value='';
 }
 
 /* ── LONG-TERM ── */
