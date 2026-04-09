@@ -902,17 +902,26 @@ function renderComp(){
   const verdict=diff===0?'All square — game on':(cL?'Chris':'Jack')+' leads by '+diff+' pt'+(diff!==1?'s':'');
   document.getElementById('compWidget').innerHTML=`<div class="comp-caption">Week ${WK} — Who's Winning</div>
   <div class="comp-scores">
-    <div class="comp-p"><div class="comp-name">Chris${cL&&cs.pts>0?' 🏆':''}</div><div class="comp-score${cL&&cs.pts>0?' lead':''}">${cs.pts}</div></div>
-    <div class="comp-p"><div class="comp-name">Jack${!cL&&js.pts>0?' 🏆':''}</div><div class="comp-score${!cL&&js.pts>0?' lead':''}">${js.pts}</div></div>
+    <div class="comp-p"><div class="comp-name">Chris${cL&&cs.pts>0?' 🏆':''}</div><div class="comp-score${cL&&cs.pts>0?' lead':''}" onclick="editScore('Chris')" title="Click to edit score" style="cursor:pointer">${cs.pts}</div></div>
+    <div class="comp-p"><div class="comp-name">Jack${!cL&&js.pts>0?' 🏆':''}</div><div class="comp-score${!cL&&js.pts>0?' lead':''}" onclick="editScore('Jack')" title="Click to edit score" style="cursor:pointer">${js.pts}</div></div>
   </div>
   <div class="comp-line">${verdict}</div>`;
 }
 
+function editScore(person){
+  var cur=S.scores[person].pts;
+  var val=prompt('Set '+person+"'s score (current: "+cur+'):', cur);
+  if(val!==null&&val.trim()!==''&&!isNaN(parseInt(val))){
+    S.scores[person].pts=Math.max(0,parseInt(val));
+    save();renderOverview();
+  }
+}
 function toggleDT(di,wh,ti){
   const k=wh+'Tasks';if(!S.days[di][k])S.days[di][k]=[];
   S.days[di][k][ti].done=!S.days[di][k][ti].done;
   const p=wh==='chris'?'Chris':'Jack';
   if(S.days[di][k][ti].done){S.scores[p].pts+=1;S.scores[p].tasks+=1;clog('task','Task completed: "'+S.days[di][k][ti].text+'" — '+p);toast(p+' +1 pt');}
+  else{S.scores[p].pts=Math.max(0,S.scores[p].pts-1);S.scores[p].tasks=Math.max(0,S.scores[p].tasks-1);}
   save();renderOverview();
 }
 function editDT(el){const di=+el.dataset.di,wh=el.dataset.who,ti=+el.dataset.ti,k=wh+'Tasks';if(!S.days[di][k])S.days[di][k]=[];S.days[di][k][ti].text=el.textContent.trim();save();}
@@ -1261,7 +1270,7 @@ Return ONLY valid JSON with the complete updated state. No explanation, no markd
 Rules:
 - Delivered client: move in pipeline AND update project status
 - Sunday review: update weeks, stGoals, pipeline, ltGoals progress, meetings array, scores
-- Scoring: task done=1pt, pipeline stage moved=2pt, goal hit=3pt
+- Scoring: task done=1pt, pipeline stage moved=2pt, weekly goal=3pt, invoice paid=5pt, lt goal milestone=5pt
 - Add to meetings: {date:"Day Mon Year", summary:"2-3 sentence summary"}
 - Only meaningful company events in log (not UI actions)
 - revenue has no target field — only monthly amounts
