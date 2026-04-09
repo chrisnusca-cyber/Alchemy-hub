@@ -214,6 +214,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
 .kch{padding:9px 11px;border-bottom:0.5px solid var(--b2);background:var(--g1);display:flex;justify-content:space-between;align-items:center;}
 .kstage{font-size:9px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--g4);}
 .kcnt{font-size:9px;color:var(--g3);background:var(--g2);padding:1px 5px;border-radius:20px;}
+.kc-add{background:none;border:0.5px solid var(--g2);border-radius:3px;width:16px;height:16px;cursor:pointer;font-size:11px;color:var(--g3);display:flex;align-items:center;justify-content:center;line-height:1;padding:0;}
+.kc-add:hover{border-color:var(--k);color:var(--k);}
 .kb{padding:7px;}
 .kcard{background:white;border:0.5px solid var(--b2);border-radius:3px;padding:8px 10px;margin-bottom:4px;position:relative;}
 .kcard-name{font-size:11px;font-weight:700;letter-spacing:-.01em;margin-bottom:1px;}
@@ -980,7 +982,7 @@ function renderProspects(){
   stages.forEach(s=>{
     const cards=S.pipeline[s]||[];
     const col=document.createElement('div');col.className='kc';
-    col.innerHTML=`<div class="kch"><span class="kstage">${slbls[s]}</span><span class="kcnt">${cards.length}</span></div>
+    col.innerHTML=`<div class="kch"><span class="kstage">${slbls[s]}</span><div style="display:flex;align-items:center;gap:5px;"><span class="kcnt">${cards.length}</span><button class="kc-add" onclick="addKCard('${s}')" title="Add card">+</button></div></div>
     <div class="kb" id="kb-${s}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropKCard(event,'${s}')">
       ${cards.map((c,i)=>`<div class="kcard" draggable="true" ondragstart="dragKCard(event,'${s}',${i})">
         <button class="kcard-del" onclick="rmKcard('${s}',${i})">×</button>
@@ -1023,6 +1025,16 @@ function rmHit(i){const nm=S.hitList[i].name;S.hitList.splice(i,1);clog('client'
 function addHit(){S.hitList.push({name:'New Brand',why:'',lead:who,priority:'Med'});clog('client','New brand added to hit list');save();renderProspects();}
 function proHit(i){const h=S.hitList[i];S.pipeline.prospect.push({name:h.name,meta:'Lead: '+h.lead,tag:'studio'});S.hitList.splice(i,1);clog('client',h.name+' moved to pipeline');save();renderProspects();renderOverview();toast(h.name+' → Pipeline');}
 function rmKcard(s,i){const nm=S.pipeline[s][i].name;S.pipeline[s].splice(i,1);clog('client',nm+' removed from '+s);save();renderProspects();}
+function addKCard(s){
+  var nm=prompt('Brand / client name:');
+  if(!nm||!nm.trim())return;
+  var meta=prompt('Note (e.g. "Pitch w16", "Starts May"):','') ||'';
+  if(!S.pipeline[s])S.pipeline[s]=[];
+  S.pipeline[s].push({name:nm.trim(),meta:meta.trim(),tag:'studio'});
+  clog('client',nm.trim()+' added to '+s);
+  save();renderProspects();renderOverview();
+  toast(nm.trim()+' added to '+s);
+}
 function eProj(el){const pi=+el.dataset.pi,f=el.dataset.f;S.projects[pi][f]=el.textContent.trim();save();if(f==='status')renderOverview();}
 function slidePct(pi,el){const v=+el.value;S.projects[pi].pct=v;document.getElementById('pf-'+pi).style.width=v+'%';document.getElementById('ppl-'+pi).textContent=v+'%';document.getElementById('ps-'+pi).textContent=v+'%';clog('task',S.projects[pi].name+' progress → '+v+'%');save();renderOverview();}
 function delProj(pi){const nm=S.projects[pi].name;S.projects.splice(pi,1);clog('client','Project '+nm+' removed');save();renderProspects();renderOverview();}
