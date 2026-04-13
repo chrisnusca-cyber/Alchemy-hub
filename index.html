@@ -1419,7 +1419,17 @@ async function runAI(msg){
         messages:[{role:'user',content:'State:\n'+JSON.stringify(send)+'\n\nUser ('+who+'): '+msg}]})
     });
     const data=await res.json();
+    if(!res.ok){
+      const errMsg=data.error?.message||'API error '+res.status;
+      const isCredits=errMsg.toLowerCase().includes('credit');
+      toast(isCredits?'No API credits — add at console.anthropic.com':'API error: '+res.status);
+      console.error('API error:',errMsg);
+      prevState=null;document.getElementById('undoBtn').disabled=true;
+      btn.disabled=false;btn.textContent='Update →';
+      return;
+    }
     const txt=data.content?.find(b=>b.type==='text')?.text||'';
+    if(!txt){toast('Empty response — try again');console.error('Empty response:',data);btn.disabled=false;btn.textContent='Update →';return;}
     const ns=JSON.parse(txt.replace(/```json|```/g,'').trim());
     const existingLog=S.log;
     S={...ns,log:[...(ns.log||[]).slice(0,3),...existingLog].slice(0,500)};
