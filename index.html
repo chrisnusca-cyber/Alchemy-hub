@@ -1405,7 +1405,7 @@ Rules:
 - Only meaningful company events in log (not UI actions)
 - revenue has no target field — only monthly amounts
 
-Schema: {curView,days:[{name,chrisTasks:[{text,done}],jackTasks:[{text,done}]}],weeks:[{num,label,chris:string[],jack:string[]}],stGoals:[{text,done,owner}],pipeline:{prospect,pitched,active,delivered,invoiced:[{name,meta,tag}]},hitList:[{name,why,lead,priority}],projects:[{name,pct,tag,scope,assets,next,status}],ltGoals:{studios:[{text,done,target,progress}],labs:[{text,done,target,progress}]},scores:{Chris:{pts,tasks,goals},Jack:{pts,tasks,goals}},invoices:[{client,amount,issued,due,status:"draft"|"invoiced"|"paid"|"overdue"}],revenue:{monthly:{Jan..Dec:number}},ideas:[{text,date}],skills:[{text,date}],meetings:[{date,summary}],log:[{ts,who,type,msg}]}`;
+Schema: {curView,days:[{name,chrisTasks:[{text,done}],jackTasks:[{text,done}]}],weeks:[{num,label,chris:string[],jack:string[]}],stGoals:[{text,done,owner}],pipeline:{prospect,pitched,active,delivered,invoiced:[{name,meta,tag}]},hitList:[{name,why,lead,priority}],projects:[{name,pct,tag,scope,assets,next,status,tasks:[{text,done}]}],ltGoals:{studios:[{text,done,target,progress}],labs:[{text,done,target,progress}]},scores:{Chris:{pts,tasks,goals},Jack:{pts,tasks,goals}},invoices:[{client,amount,issued,due,status:"draft"|"invoiced"|"paid"|"overdue"}],revenue:{monthly:{Jan..Dec:number}},ideas:[{text,date}],skills:[{text,date}],meetings:[{date,summary}],log:[{ts,who,type,msg}]}`;
 
 async function runAI(msg){
   const btn=document.getElementById('aiBtn');
@@ -1415,7 +1415,7 @@ async function runAI(msg){
   try{
     const res=await fetch('/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4000,system:SYSTEM,
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:8000,system:SYSTEM,
         messages:[{role:'user',content:'State:\n'+JSON.stringify(send)+'\n\nUser ('+who+'): '+msg}]})
     });
     const data=await res.json();
