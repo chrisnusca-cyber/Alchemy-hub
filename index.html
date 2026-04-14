@@ -90,11 +90,11 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
 .ov-grid{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;}
 
 /* ── FLOATING INVOICE WIDGET ── */
-.inv-widget{position:fixed;bottom:0;right:28px;z-index:999;width:620px;}
+.inv-widget{position:fixed;bottom:53px;right:28px;z-index:199;width:600px;}
 .inv-widget-tab{background:var(--bk);color:white;padding:7px 14px;border-radius:6px 6px 0 0;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:center;}
 .inv-widget-tab:hover{background:#222;}
 .inv-badge{background:var(--k);color:white;border-radius:20px;font-size:9px;padding:1px 6px;}
-.inv-widget-body{background:white;border:0.5px solid var(--b2);border-bottom:none;max-height:340px;overflow-y:auto;}
+.inv-widget-body{background:white;border:0.5px solid var(--b2);border-bottom:none;max-height:320px;overflow-y:auto;box-shadow:0 -4px 20px rgba(0,0,0,0.1);}
 
 /* ── INVOICE TRACKER ── */
 .inv-tbl{border:none;overflow:hidden;margin-bottom:0;}
@@ -150,9 +150,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
 .dr-tck.done::after{content:'';width:5px;height:3px;border-left:1.5px solid white;border-bottom:1.5px solid white;transform:rotate(-45deg) translateY(-1px);display:block;}
 .dr-ttxt{font-size:11px;color:var(--g4);flex:1;outline:none;cursor:text;}
 .dr-ttxt.done{color:var(--g3);text-decoration:line-through;}
-.dr-tdel{opacity:0;background:none;border:none;cursor:pointer;color:var(--g2);font-size:13px;transition:all .1s;padding:0 3px;line-height:1;}
-.dr-task:hover .dr-tdel{opacity:1;color:var(--g3);}
-.dr-tdel:hover{color:#c00!important;}
+.dr-tdel{background:none;border:none;cursor:pointer;color:var(--g2);font-size:14px;padding:0 4px;line-height:1;opacity:0;transition:opacity .1s;}
+.dr-task:hover .dr-tdel{opacity:1;}
+.dr-tdel:hover{color:#c00;}
 .dr-add{font-size:10px;color:var(--g3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:4px 13px 7px;display:block;}
 .dr-add:hover{color:var(--k);}
 
@@ -1131,7 +1131,7 @@ function renderInvoices(){
   if(!ht)return;
   const outstandingCount=inv.filter(i=>i.status==='invoiced'||i.status==='overdue').length;
   const badge=document.getElementById('invWidgetBadge');
-  if(badge)badge.textContent=outstandingCount>0?outstandingCount+' outstanding':inv.length+' invoices';
+  if(badge)badge.textContent=outstandingCount>0?outstandingCount+' outstanding':inv.length+' invoice'+(inv.length===1?'':'s');
   const total=inv.reduce((s,i)=>s+(i.amount||0),0);
   const paid=inv.filter(i=>i.status==='paid').reduce((s,i)=>s+(i.amount||0),0);
   const outstanding=inv.filter(i=>i.status==='invoiced'||i.status==='overdue').reduce((s,i)=>s+(i.amount||0),0);
