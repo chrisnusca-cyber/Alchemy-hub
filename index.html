@@ -186,7 +186,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
 .ac-status.waiting{color:var(--amber,#b85a00);}
 
 /* Goals widget */
-.stg-item{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:0.5px solid var(--b1);}
+.stg-item{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:0.5px solid var(--b1);border-right:0.5px solid var(--b1);}
 .stg-item:last-child{border-bottom:none;}
 .stg-ck{width:13px;height:13px;border:1.5px solid var(--g2);border-radius:2px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;}
 .stg-ck.done{background:var(--k);border-color:var(--k);}
@@ -455,6 +455,14 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
     </div>
   </div>
   <div class="kpi-strip" id="kpiStrip"></div>
+  <div class="widget" style="margin-bottom:20px;">
+    <div class="widget-hd">
+      <div class="widget-title">This Week's Goals</div>
+      <button class="sm-btn" onclick="addSTG()" style="font-size:10px;padding:2px 7px;">+ add</button>
+    </div>
+    <div id="stgList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0;"></div>
+    <button class="stg-add-btn" onclick="addSTG()">+ Add goal</button>
+  </div>
   <div class="ov-grid">
     <div>
       <div id="v-monthly"><div id="monthCal"></div></div>
@@ -471,14 +479,6 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
       <div class="widget">
         <div class="widget-hd"><div class="widget-title">Clients</div></div>
         <div id="activeClients"></div>
-      </div>
-      <div class="widget">
-        <div class="widget-hd">
-          <div class="widget-title">This Week's Goals</div>
-          <button class="sm-btn" onclick="addSTG()" style="font-size:10px;padding:2px 7px;">+ add</button>
-        </div>
-        <div id="stgList"></div>
-        <button class="stg-add-btn" onclick="addSTG()">+ Add goal</button>
       </div>
     </div>
   </div>
