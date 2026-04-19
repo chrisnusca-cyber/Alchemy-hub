@@ -1392,26 +1392,62 @@ async function submitSunday(){
   const ta=document.getElementById('sunTa'),txt=ta.value.trim();
   if(!txt)return;
   const btn=document.getElementById('sunGo');btn.disabled=true;btn.textContent='Updating…';
-  const sundayPrompt=`SUNDAY REVIEW — do all of the following in one update:
+  snapshot();
 
-1. ROLL WEEK FORWARD: Remove weeks[0] (the week just finished). weeks[1] becomes the new weeks[0] (current week). Add a new empty week at the end to maintain at least 4 upcoming weeks.
+  // Send only the minimal state needed for Sunday rollover
+  const send={
+    days:S.days,
+    weeks:S.weeks,
+    stGoals:S.stGoals,
+    pipeline:S.pipeline,
+    hitList:S.hitList,
+    projects:S.projects,
+    scores:S.scores,
+    invoices:S.invoices,
+    meetings:(S.meetings||[]).slice(0,3)
+  };
 
-2. CLEAN SLATE FOR DAILY TASKS: Clear ALL chrisTasks and jackTasks in every day (set to []). The week is done.
+  const todayStr=NOW.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][NOW.getMonth()]+' '+NOW.getFullYear();
+  const SUN_SYSTEM=`You are the Alchemy Hub AI for Alchemy Studios (Chris & Jack, Sweden). Notes may be in Swedish — understand them fully.
 
-3. CARRY OVER UNFINISHED TASKS: Any tasks mentioned in the notes as unfinished or not completed — add them into the relevant day slots of the NEW current week (weeks[0]), distributed across Mon–Fri for Chris and Jack respectively. Use your judgment on which day makes sense.
+Return ONLY valid JSON. No explanation, no markdown, no code fences.
 
-4. LOG WHAT GOT DONE: For every accomplishment mentioned, add a log entry {ts, who, type:"task", msg}.
+Do ALL of these in one response:
+1. ROLL WEEK: Remove weeks[0]. weeks[1] becomes new weeks[0]. Append a new empty week at the end (keep at least 4 total).
+2. CLEAN DAYS: Set ALL chrisTasks and jackTasks to [] for every day.
+3. CARRY OVER: Add unfinished tasks from notes into Mon-Fri of new current week for Chris/Jack.
+4. NEW GOALS: Set stGoals to fresh goals for next week based on notes. Clear done flags.
+5. PIPELINE: Move any mentioned clients between stages.
+6. SCORES: Add points for completed work mentioned.
+7. MEETING LOG: Add {date:"${todayStr}", summary:"2-3 sentences in English"} to meetings array (prepend, keep max 10).
 
-5. UPDATE GOALS: Mark any stGoals as done if the notes confirm they were completed. Reset done goals to false for next week (fresh start). Add new stGoals based on next week's plan mentioned in the notes.
+Return the full updated state using this shape:
+{days,weeks,stGoals,pipeline,hitList,projects,scores,invoices,meetings}`;
 
-6. UPDATE PIPELINE & SCORES: Move any clients mentioned as pitched/active/delivered. Update scores based on tasks done, goals hit.
-
-7. LOG THE MEETING: Add to meetings[] with today's date and a 2-3 sentence summary of the week.
-
-Notes from this week:
-${txt}`;
-  await runAI(sundayPrompt);
-  ta.value='';btn.disabled=false;btn.textContent='Update Hub →';
+  try{
+    const res=await fetch('/api/claude',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:16000,system:SUN_SYSTEM,
+        messages:[{role:'user',content:'Current state:\n'+JSON.stringify(send)+'\n\nWeek notes:\n'+txt}]})
+    });
+    const data=await res.json();
+    if(!res.ok){toast('API error: '+(data.error?.message||res.status));btn.disabled=false;btn.textContent='Update Hub →';return;}
+    if(data.stop_reason==='max_tokens'){toast('Too long — notes truncated, try again');btn.disabled=false;btn.textContent='Update Hub →';return;}
+    const raw=data.content?.find(b=>b.type==='text')?.text||'';
+    if(!raw){toast('Empty response — try again');btn.disabled=false;btn.textContent='Update Hub →';return;}
+    let ns;
+    try{ns=JSON.parse(raw.replace(/```json|```/g,'').trim());}
+    catch(pe){console.error('Sunday JSON parse fail:',raw);toast('AI returned bad JSON — try again');btn.disabled=false;btn.textContent='Update Hub →';return;}
+    // Merge back — keep ideas/skills/revenue/log from existing state
+    const existingLog=S.log;
+    S={...S,...ns,ideas:S.ideas,skills:S.skills,revenue:S.revenue,
+      log:[{ts:new Date().toISOString(),who:'System',type:'task',msg:'Sunday review completed — week rolled forward'},...existingLog].slice(0,500)};
+    save();render();toast('Week rolled forward ✓');
+    ta.value='';
+  }catch(e){
+    console.error('Sunday error:',e);toast('Error — try again');prevState=null;
+  }
+  btn.disabled=false;btn.textContent='Update Hub →';
 }
 
 /* ── AI ── */
