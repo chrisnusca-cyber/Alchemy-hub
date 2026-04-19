@@ -1415,11 +1415,28 @@ async function runAI(msg){
   const btn=document.getElementById('aiBtn');
   btn.disabled=true;btn.textContent='Thinking…';
   snapshot();
-  const send={...S,log:S.log.slice(0,5)};
+  // Send a lean state — strip heavy arrays that rarely change from AI updates
+  const send={
+    curView:S.curView,
+    days:S.days,
+    weeks:S.weeks,
+    stGoals:S.stGoals,
+    pipeline:S.pipeline,
+    hitList:S.hitList,
+    projects:S.projects,
+    ltGoals:S.ltGoals,
+    scores:S.scores,
+    invoices:S.invoices,
+    revenue:S.revenue,
+    meetings:(S.meetings||[]).slice(0,5),
+    ideas:(S.ideas||[]).slice(0,5),
+    skills:(S.skills||[]).slice(0,5),
+    log:[]
+  };
   try{
     const res=await fetch('/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:8000,system:SYSTEM,
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:16000,system:SYSTEM,
         messages:[{role:'user',content:'State:\n'+JSON.stringify(send)+'\n\nUser ('+who+'): '+msg}]})
     });
     const data=await res.json();
@@ -1432,14 +1449,36 @@ async function runAI(msg){
       btn.disabled=false;btn.textContent='Update →';
       return;
     }
+    if(data.stop_reason==='max_tokens'){
+      toast('Response too long — try a shorter update');
+      console.error('Truncated response');
+      prevState=null;document.getElementById('undoBtn').disabled=true;
+      btn.disabled=false;btn.textContent='Update →';
+      return;
+    }
     const txt=data.content?.find(b=>b.type==='text')?.text||'';
-    if(!txt){toast('Empty response — try again');console.error('Empty response:',data);btn.disabled=false;btn.textContent='Update →';return;}
-    const ns=JSON.parse(txt.replace(/```json|```/g,'').trim());
+    if(!txt){toast('Empty response — try again');console.error('Empty:',data);btn.disabled=false;btn.textContent='Update →';return;}
+    let ns;
+    try{ns=JSON.parse(txt.replace(/```json|```/g,'').trim());}
+    catch(pe){
+      console.error('JSON parse failed. Raw response:',txt);
+      toast('AI returned invalid JSON — try again');
+      prevState=null;document.getElementById('undoBtn').disabled=true;
+      btn.disabled=false;btn.textContent='Update →';
+      return;
+    }
     const existingLog=S.log;
-    S={...ns,log:[...(ns.log||[]).slice(0,3),...existingLog].slice(0,500)};
+    // Preserve heavy arrays if AI didn't return them
+    S={
+      ...S,
+      ...ns,
+      ideas:ns.ideas||S.ideas,
+      skills:ns.skills||S.skills,
+      log:[...(ns.log||[]).slice(0,3),...existingLog].slice(0,500)
+    };
     save();render();toast('Hub updated ✓');
   }catch(e){
-    toast('Error — try again');console.error(e);
+    toast('Error — try again');console.error('runAI error:',e);
     prevState=null;document.getElementById('undoBtn').disabled=true;
   }
   btn.disabled=false;btn.textContent='Update →';
