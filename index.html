@@ -531,7 +531,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
   <div class="sun-blk">
     <div class="sun-hd"><div class="sun-title">Sunday Review</div><div class="sun-sub">Paste notes → AI updates the whole hub</div></div>
     <div class="sun-body">
-      <textarea class="sun-ta" id="sunTa" placeholder="What did we accomplish this week? What's the plan for next week? New clients, pipeline changes, goals hit? Paste raw notes or a full transcript — the AI extracts and updates everything."></textarea>
+      <textarea class="sun-ta" id="sunTa" placeholder="Paste this week's notes — what got done, what didn't, pipeline moves, next week's plan. The AI will roll the week forward, carry over unfinished tasks, clean the daily schedule, and update goals, scores and the log."></textarea>
       <div class="sun-foot"><button class="sun-go" id="sunGo" onclick="submitSunday()">Update Hub →</button></div>
     </div>
   </div>
@@ -1392,7 +1392,25 @@ async function submitSunday(){
   const ta=document.getElementById('sunTa'),txt=ta.value.trim();
   if(!txt)return;
   const btn=document.getElementById('sunGo');btn.disabled=true;btn.textContent='Updating…';
-  await runAI('Sunday review — update weeks, stGoals, pipeline, ltGoals progress, meetings, scores based on these notes:\n\n'+txt);
+  const sundayPrompt=`SUNDAY REVIEW — do all of the following in one update:
+
+1. ROLL WEEK FORWARD: Remove weeks[0] (the week just finished). weeks[1] becomes the new weeks[0] (current week). Add a new empty week at the end to maintain at least 4 upcoming weeks.
+
+2. CLEAN SLATE FOR DAILY TASKS: Clear ALL chrisTasks and jackTasks in every day (set to []). The week is done.
+
+3. CARRY OVER UNFINISHED TASKS: Any tasks mentioned in the notes as unfinished or not completed — add them into the relevant day slots of the NEW current week (weeks[0]), distributed across Mon–Fri for Chris and Jack respectively. Use your judgment on which day makes sense.
+
+4. LOG WHAT GOT DONE: For every accomplishment mentioned, add a log entry {ts, who, type:"task", msg}.
+
+5. UPDATE GOALS: Mark any stGoals as done if the notes confirm they were completed. Reset done goals to false for next week (fresh start). Add new stGoals based on next week's plan mentioned in the notes.
+
+6. UPDATE PIPELINE & SCORES: Move any clients mentioned as pitched/active/delivered. Update scores based on tasks done, goals hit.
+
+7. LOG THE MEETING: Add to meetings[] with today's date and a 2-3 sentence summary of the week.
+
+Notes from this week:
+${txt}`;
+  await runAI(sundayPrompt);
   ta.value='';btn.disabled=false;btn.textContent='Update Hub →';
 }
 
@@ -1403,7 +1421,7 @@ Return ONLY valid JSON with the complete updated state. No explanation, no markd
 
 Rules:
 - Delivered client: move in pipeline AND update project status
-- Sunday review: update weeks, stGoals, pipeline, ltGoals progress, meetings array, scores
+- Sunday review: roll weeks forward (weeks[0] becomes history, weeks[1] becomes new current), clear all daily tasks, carry over unfinished tasks to next week days, reset stGoals done status for fresh week, update scores/pipeline/meetings
 - Scoring: task done=1pt, pipeline stage moved=2pt, weekly goal=3pt, invoice paid=5pt, lt goal milestone=5pt
 - Add to meetings: {date:"Day Mon Year", summary:"2-3 sentence summary"}
 - Only meaningful company events in log (not UI actions)
