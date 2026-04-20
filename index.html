@@ -10,6 +10,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
+/* ── PASSWORD OVERLAY ── */
+#pwOverlay{position:fixed;inset:0;background:var(--bk);display:flex;align-items:center;justify-content:center;z-index:10000;flex-direction:column;gap:20px;}
+#pwOverlay.hidden{display:none;}
+.pw-logo{font-size:20px;font-weight:700;letter-spacing:-0.03em;color:white;}
+.pw-logo em{color:var(--k);font-style:normal;}
+.pw-wrap{display:flex;gap:0;border:0.5px solid rgba(255,255,255,0.15);border-radius:4px;overflow:hidden;}
+.pw-in{background:rgba(255,255,255,0.07);border:none;outline:none;color:white;font-family:var(--font);font-size:13px;padding:10px 14px;width:180px;letter-spacing:0.06em;}
+.pw-in::placeholder{color:rgba(255,255,255,0.25);}
+.pw-btn{background:var(--k);color:white;border:none;padding:10px 18px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.04em;transition:background .12s;}
+.pw-btn:hover{background:var(--kd);}
+.pw-err{font-size:11px;color:#ff6b6b;height:14px;text-align:center;}
 /* ── LOADING OVERLAY ── */
 #loadOverlay{position:fixed;inset:0;background:var(--w);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:12px;}
 #loadOverlay.hidden{display:none;}
@@ -408,7 +419,15 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:0 36px
 </style>
 </head>
 <body>
-<div id="loadOverlay"><div class="load-logo">Alchemy <em>Hub</em></div><div class="load-txt">Loading…</div></div>
+<div id="pwOverlay">
+  <div class="pw-logo">Alchemy <em>Hub</em></div>
+  <div class="pw-wrap">
+    <input class="pw-in" id="pwIn" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')checkPw()"/>
+    <button class="pw-btn" onclick="checkPw()">Enter →</button>
+  </div>
+  <div class="pw-err" id="pwErr"></div>
+</div>
+<div id="loadOverlay" class="hidden"><div class="load-logo">Alchemy <em>Hub</em></div><div class="load-txt">Loading…</div></div>
 
 <nav>
   <div style="display:flex;align-items:center;gap:24px;">
@@ -712,6 +731,21 @@ function setSyncDot(status){
 
 function snapshot(){prevState=JSON.stringify(S);document.getElementById('undoBtn').disabled=false;}
 function doUndo(){if(!prevState)return;S=JSON.parse(prevState);prevState=null;document.getElementById('undoBtn').disabled=true;save();render();toast('Undone');}
+
+function checkPw(){
+  const val=document.getElementById('pwIn').value;
+  if(val==='Alchos'){
+    localStorage.setItem('alchemy_auth','1');
+    document.getElementById('pwOverlay').classList.add('hidden');
+    document.getElementById('loadOverlay').classList.remove('hidden');
+    init();
+  } else {
+    const err=document.getElementById('pwErr');
+    err.textContent='Incorrect password';
+    document.getElementById('pwIn').value='';
+    setTimeout(()=>{err.textContent='';},2000);
+  }
+}
 
 async function init(){
   S=await loadFromDB();
@@ -1555,7 +1589,13 @@ function toggleAIBar(){
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('aiBar').classList.remove('open')&&(document.getElementById('aiFab').classList.remove('open'))&&(document.getElementById('aiFab').textContent='🙂');});
 
-init();
+if(localStorage.getItem('alchemy_auth')==='1'){
+  document.getElementById('pwOverlay').classList.add('hidden');
+  document.getElementById('loadOverlay').classList.remove('hidden');
+  init();
+} else {
+  setTimeout(()=>document.getElementById('pwIn').focus(),100);
+}
 </script>
 </body>
 </html>
